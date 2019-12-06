@@ -27,21 +27,41 @@ sub_base = imread(strcat(frame_dir,'/f0001.jpg'));
 g_sub_base = rgb2gray(sub_base); %grayscale base
 
 for frame = 2:length(vid_frames)
+    
     %Get the file name for the current frame
     file_name = vid_frames(frame).name;
     %Get the full file path for the current frame
     full_frame_path = fullfile(frame_dir, file_name);
-    %Run simple background subtraction
-    M_simple_sub = simple_background_subtraction(full_frame_path, 70,g_sub_base);
     
+    %read in the current frame and convert to grayscale
+    current_frame = imread(full_frame_path);
+    gray_current = rgb2gray(current_frame);
+    
+    %%%SIMPLE BACKGROUND SUBSTITUTION 
+    %Run simple background subtraction
+    M_simple_sub = simple_background_subtraction(gray_current, 70,g_sub_base);
+    
+    %%%SIMPLE FRAME DIFFERENCING
     %Get the previous frame
     prev_file = vid_frames(frame-1).name;
     %Get the full file path for the previous frame
     full_prev_frame_path = fullfile(frame_dir, prev_file);
+    %read in the previous frame and convert to grayscale
+    prev_frame = imread(full_prev_frame_path);
+    g_prev_frame = rgb2gray(prev_frame);
+    
     %Run simple frame differencing
-    M_simple_diff = simple_frame_differencing(full_frame_path, full_prev_frame_path, 70);
+    M_simple_diff = simple_frame_differencing(gray_current, g_prev_frame, 70);
+    
+    %%%ADAPTIVE BACKGROUND SUBTRACTION
+    alpha = 0.5;
+    
+    
     
     %M_adaptive_background = adaptive_background_subtraction(full_frame_path, threshold, alpha_val)
+    
+    
+    %%%PERSISTENT FRAME DIFFERENCING
     %M_persistent_frame = persistent_frame_differencing(full_frame_path, threshold, gamma_val)
     
     
@@ -55,9 +75,7 @@ end
 end
 
 %function for simple background subtraction
-function M_subtract = simple_background_subtraction(frame_file, threshold, base)
-    current_frame = imread(frame_file);
-    g_current_frame = rgb2gray(current_frame);
+function M_subtract = simple_background_subtraction(g_current_frame, threshold, base)
     diff = abs(base - g_current_frame);
     M_subtract = diff > threshold;
 end
@@ -66,20 +84,15 @@ end
 %This is working, however some back edges are not showing... consider maybe
 %playing with this by doing the grayscaling the way he has it in bobtips
 %pdf
-function M_diff = simple_frame_differencing(frame_file, prev_frame_file, threshold)
-    current_frame = imread(frame_file);
-    g_current_frame = rgb2gray(current_frame);
-    prev_frame = imread(prev_frame_file);
-    g_prev_frame = rgb2gray(prev_frame);
+function M_diff = simple_frame_differencing(g_current_frame, g_prev_frame, threshold)
     diff = abs(g_prev_frame - g_current_frame);
     M_diff = diff > threshold;
 end
 
 %function for adaptive background subtraction
-function M_adapt = adaptive_background_subtraction(frame, threshold, alpha_val)
-
-
-
+function M_adapt = adaptive_background_subtraction(full_frame_path, full_prev_frame_path, threshold)
+    diff = abs(g_prev_frame - g_current_frame);
+    M_adapt = diff > threshold;
 end
 
 %function for persistent frame differencing
