@@ -1,3 +1,4 @@
+%This runs the main function of the program
 motion_detection_project();
 %main function that will run all 4 algorithms
 function motion_detection_project()
@@ -29,17 +30,21 @@ end
 frames = grayed_frames;
 end
 
+%This function takes the frames of each video and passes them into each
+%algorithm
 function final = run_algorithms(frame_dir)
 vid_frames = dir(fullfile(frame_dir, '*.jpg'));
 n_files = length(vid_frames); %get the number of frames
 
-grayed_frames = load_and_convert(frame_dir);
+grayed_frames = load_and_convert(frame_dir); %obtain the grayscaled frames for the video
 
-M_simple_sub = simple_background_subtraction(grayed_frames,50);
-M_simple_diff = simple_frame_differencing(grayed_frames,50);
-M_adaptive_background = adaptive_background_subtraction(grayed_frames,0.5,50);
-M_persistent_frame_diff = persistent_frame_differencing(grayed_frames, 50, 50);
+M_simple_sub = simple_background_subtraction(grayed_frames,50); %run Simple Background Subtraction
+M_simple_diff = simple_frame_differencing(grayed_frames,50); %run Simple Frame Differencing
+M_adaptive_background = adaptive_background_subtraction(grayed_frames,0.5,50); %Run Adaptive Background Subtraction
+M_persistent_frame_diff = persistent_frame_differencing(grayed_frames, 50, 50); %Run Persistent Frame Differencing
 
+%For all images in the resulting cell array, create and export the 4-panel
+%image
 for fr = 2:size(grayed_frames,1)
     file_name = vid_frames(fr).name;
     final = [M_simple_sub{fr},M_simple_diff{fr};M_adaptive_background{fr},M_persistent_frame_diff{fr}];
@@ -49,7 +54,7 @@ end
 
 end
 
-%Function used for simple background subtraction algorithm
+%Function used for Simple Background Subtraction algorithm
 function M_subtract = simple_background_subtraction(video_frames,threshold)
 M_sub_frames = cell(length(video_frames),1);
 base_frame = video_frames{1};
@@ -61,7 +66,7 @@ end
 M_subtract = M_sub_frames;
 end
 
-%function used for simple frame differencing algorithm
+%function used for Simple Frame Differencing algorithm
 function M_diff = simple_frame_differencing(video_frames,threshold)
 M_diff_frames = cell(length(video_frames),1);
 backgrounds = cell(length(video_frames),1);
@@ -73,7 +78,7 @@ for frame=2:length(video_frames)
 end 
 M_diff = M_diff_frames;
 end
-%Function used for adaptive background subtraction algorithm
+%Function used for Adaptive Background Subtraction algorithm
 function M_adapt = adaptive_background_subtraction(video_frames,alpha,threshold)
 M_adaptive_frames = cell(length(video_frames),1);
 backgrounds = cell(length(video_frames),1);
