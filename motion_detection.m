@@ -10,7 +10,7 @@ frame_folders = ['ArenaA','ArenaN','AShipDeck','getin','getout','movecam','trees
 %send directory to func
 %for i = 1:size(frame_folders)
 %run_algorithms
-run_algorithms('walk');
+run_algorithms('ArenaA');
 end
 
 %Function to load and convert the images into grayscale
@@ -32,10 +32,11 @@ frames = grayed_frames;
 end
 
 %Function to get the backgrounds needed for simple frame differencing
-function simp_frame_diff_backgrounds = get_simp_frame_diff_backgrounds(frame_dir, grayed_frames)
+function simp_frame_diff_backgrounds = get_simp_frame_diff_backgrounds(frame_dir,grayed_frames)
 vid_frames = dir(fullfile(frame_dir, '*.jpg'));
 n_files = length(vid_frames); %get the number of frames
 simp_frame_diff_backs = cell(n_files,1);
+simp_frame_diff_backs{1} = grayed_frames{1};
 
 for frame=2:length(vid_frames)
     %calculate the background images for each frame for simple frame diff
@@ -46,12 +47,19 @@ end
 
 %Function to get the backgrounds needed for adaptive background
 %substitution
-function adaptive_back_sub_backgrounds = get_adaptive_back_sub_backgrounds(frame_dir)
+function adaptive_back_sub_backgrounds = get_adaptive_back_sub_backgrounds(frame_dir,grayed_frames,alpha)
 vid_frames = dir(fullfile(frame_dir, '*.jpg'));
 n_files = length(vid_frames); %get the number of frames
-adaptive_back_sub_backgrounds = cell(n_files,1);
+adaptive_back_sub_backs = cell(n_files,1);
+adaptive_back_sub_backs{1} = grayed_frames{1};
 
+for frame=2:length(vid_frames)
+    %calculate the background images for each frame for simple frame diff
+    adaptive_back_sub_backs{frame} = alpha*grayed_frames{frame} + (1-alpha)*adaptive_back_sub_backs{frame-1};
 end
+adaptive_back_sub_backgrounds = adaptive_back_sub_backs;
+end
+
 %Function to get the backgrounds needed for persistent frame differencing
 function persistent_frame_diff_backgrounds = get_persistent_frame_diff_backgrounds(frame_dir)
 vid_frames = dir(fullfile(frame_dir, '*.jpg'));
@@ -70,23 +78,26 @@ n_files = length(vid_frames); %get the number of frames
 
 grayed_frames = load_and_convert(frame_dir);
 init_background_frame = grayed_frames{1};
-
+%Get backgrounds for simple frame differencing
 simp_frame_diff_backs = get_simp_frame_diff_backgrounds(frame_dir, grayed_frames);
+%Get backgrounds for adaptive background substitution
+adaptive_back_sub_backgrounds = get_adaptive_back_sub_backgrounds(frame_dir,grayed_frames,0.5);
 
 for fr = 2:size(grayed_frames,1)
     file_name = vid_frames(fr).name;
     
     current_frame = grayed_frames{fr};
     simp_diff_frame_back = simp_frame_diff_backs{fr};
-    
-    %%%SIMPLE BACKGROUND SUBSTITUTION 
+    adaptive_back_sub_back = adaptive_back_sub_backgrounds{fr};
+   
     %Run simple background subtraction
-    M_simple_sub = simple_background_subtraction(current_frame,init_background_frame,70);
+    M_simple_sub = simple_background_subtraction(current_frame,init_background_frame,50);
     %Run simple frame differencing
-    M_simple_diff = simple_frame_differencing(current_frame, simp_diff_frame_back, 60);
-    
+    M_simple_diff = simple_frame_differencing(current_frame, simp_diff_frame_back, 50);
+    %Run adaptive background subtraction
+    M_adaptive_background = adaptive_background_subtraction(current_frame, adaptive_back_sub_back, 50);
 
-    final = [M_simple_sub,M_simple_diff];%,M_adaptive_background];
+    final = [M_simple_sub,M_simple_diff,M_adaptive_background];%,M_adaptive_background];
     new_file = strcat('new_walk',file_name); %This needs to be fixed to dynamically output the new frame images based on the current directory
     imwrite(final, new_file);
 end
